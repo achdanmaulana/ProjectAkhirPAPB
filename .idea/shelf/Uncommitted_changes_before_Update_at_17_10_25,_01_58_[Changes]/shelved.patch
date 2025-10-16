@@ -1,0 +1,451 @@
+Index: app/src/main/java/com/ProjectAkhir/Keuanganku/view/TransactionListScreen.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.ProjectAkhir.Keuanganku.view\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.foundation.lazy.LazyColumn\nimport androidx.compose.foundation.lazy.items\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.unit.dp\nimport com.ProjectAkhir.Keuanganku.model.Transaction\nimport com.ProjectAkhir.Keuanganku.util.FirebaseHelper\n\n@OptIn(ExperimentalMaterial3Api::class)\n@Composable\nfun TransactionListScreen() {\n    var transactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }\n\n    LaunchedEffect(Unit) {\n        FirebaseHelper.getTransactions { list ->\n            transactions = list\n        }\n    }\n\n    Scaffold(\n        topBar = {\n            TopAppBar(\n                title = { Text(\"\uD83D\uDCCA Daftar Transaksi\") }\n            )\n        },\n        floatingActionButton = {\n            FloatingActionButton(onClick = { /* nanti ke AddTransactionScreen */ }) {\n                Text(\"+\")\n            }\n        }\n    ) { padding ->\n        if (transactions.isEmpty()) {\n            Box(\n                modifier = Modifier\n                    .fillMaxSize()\n                    .padding(padding),\n                contentAlignment = Alignment.Center\n            ) {\n                Text(\"Belum ada transaksi.\")\n            }\n        } else {\n            LazyColumn(\n                modifier = Modifier\n                    .fillMaxSize()\n                    .padding(padding)\n            ) {\n                items(transactions) { trx ->\n                    Card(\n                        modifier = Modifier\n                            .fillMaxWidth()\n                            .padding(8.dp)\n                    ) {\n                        Column(modifier = Modifier.padding(16.dp)) {\n                            Text(trx.title, style = MaterialTheme.typography.titleMedium)\n                            Text(\"Rp ${trx.amount}\", style = MaterialTheme.typography.bodyMedium)\n                            Text(trx.date, style = MaterialTheme.typography.bodySmall)\n                        }\n                    }\n                }\n            }\n        }\n    }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/ProjectAkhir/Keuanganku/view/TransactionListScreen.kt b/app/src/main/java/com/ProjectAkhir/Keuanganku/view/TransactionListScreen.kt
+--- a/app/src/main/java/com/ProjectAkhir/Keuanganku/view/TransactionListScreen.kt	(revision 6055646a144cccd8107a1dd10d9d8c55bbb68fd7)
++++ b/app/src/main/java/com/ProjectAkhir/Keuanganku/view/TransactionListScreen.kt	(date 1760639946697)
+@@ -5,7 +5,6 @@
+ import androidx.compose.foundation.lazy.items
+ import androidx.compose.material3.*
+ import androidx.compose.runtime.*
+-import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
+ import androidx.compose.ui.unit.dp
+ import com.ProjectAkhir.Keuanganku.model.Transaction
+@@ -13,56 +12,48 @@
+ 
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+-fun TransactionListScreen() {
++fun TransactionListScreen(onAddTransactionClick: () -> Unit) {
+     var transactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
+ 
++    // Ambil data realtime dari Firebase
+     LaunchedEffect(Unit) {
+-        FirebaseHelper.getTransactions { list ->
++        FirebaseHelper.getTransactionsRealtime { list ->
+             transactions = list
+         }
+     }
+ 
+     Scaffold(
+-        topBar = {
+-            TopAppBar(
+-                title = { Text("📊 Daftar Transaksi") }
+-            )
+-        },
++        topBar = { TopAppBar(title = { Text("Daftar Transaksi") }) },
+         floatingActionButton = {
+-            FloatingActionButton(onClick = { /* nanti ke AddTransactionScreen */ }) {
++            FloatingActionButton(onClick = onAddTransactionClick) {
+                 Text("+")
+             }
+         }
+     ) { padding ->
+-        if (transactions.isEmpty()) {
+-            Box(
+-                modifier = Modifier
+-                    .fillMaxSize()
+-                    .padding(padding),
+-                contentAlignment = Alignment.Center
+-            ) {
+-                Text("Belum ada transaksi.")
+-            }
+-        } else {
+-            LazyColumn(
+-                modifier = Modifier
+-                    .fillMaxSize()
+-                    .padding(padding)
+-            ) {
+-                items(transactions) { trx ->
+-                    Card(
+-                        modifier = Modifier
+-                            .fillMaxWidth()
+-                            .padding(8.dp)
+-                    ) {
+-                        Column(modifier = Modifier.padding(16.dp)) {
+-                            Text(trx.title, style = MaterialTheme.typography.titleMedium)
+-                            Text("Rp ${trx.amount}", style = MaterialTheme.typography.bodyMedium)
+-                            Text(trx.date, style = MaterialTheme.typography.bodySmall)
+-                        }
+-                    }
+-                }
+-            }
++        LazyColumn(
++            modifier = Modifier
++                .padding(padding)
++                .padding(16.dp)
++        ) {
++            items(transactions) { transaction ->
++                TransactionItem(transaction)
++            }
++        }
++    }
++}
++
++@Composable
++fun TransactionItem(transaction: Transaction) {
++    Card(
++        modifier = Modifier
++            .fillMaxWidth()
++            .padding(vertical = 4.dp)
++    ) {
++        Column(modifier = Modifier.padding(12.dp)) {
++            Text(text = transaction.title, style = MaterialTheme.typography.titleMedium)
++            Text(text = "Rp ${transaction.amount}", style = MaterialTheme.typography.bodyMedium)
++            Text(text = transaction.category, style = MaterialTheme.typography.bodySmall)
++            Text(text = transaction.date, style = MaterialTheme.typography.bodySmall)
+         }
+     }
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/ProjectAkhir/Keuanganku/model/Transaction.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.ProjectAkhir.Keuanganku.model\n\ndata class Transaction(\n    val id: String = \"\",\n    val title: String = \"\",\n    val amount: Double = 0.0,\n    val category: String = \"\",\n    val date: String = \"\"\n)
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/ProjectAkhir/Keuanganku/model/Transaction.kt b/app/src/main/java/com/ProjectAkhir/Keuanganku/model/Transaction.kt
+--- a/app/src/main/java/com/ProjectAkhir/Keuanganku/model/Transaction.kt	(revision 6055646a144cccd8107a1dd10d9d8c55bbb68fd7)
++++ b/app/src/main/java/com/ProjectAkhir/Keuanganku/model/Transaction.kt	(date 1760639180130)
+@@ -1,7 +1,6 @@
+ package com.ProjectAkhir.Keuanganku.model
+ 
+ data class Transaction(
+-    val id: String = "",
+     val title: String = "",
+     val amount: Double = 0.0,
+     val category: String = "",
+Index: app/build.gradle.kts
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>plugins {\n    id(\"com.android.application\")\n    id(\"org.jetbrains.kotlin.android\")\n    id(\"com.google.gms.google-services\")\n    id(\"org.jetbrains.kotlin.plugin.compose\")\n}\n\nandroid {\n    namespace = \"com.ProjectAkhir.Keuanganku\"\n    compileSdk = 34\n\n    defaultConfig {\n        applicationId = \"com.ProjectAkhir.Keuanganku\"\n        minSdk = 26\n        targetSdk = 34\n        versionCode = 1\n        versionName = \"1.0\"\n    }\n\n    buildFeatures {\n        compose = true\n    }\n\n    composeOptions {\n        kotlinCompilerExtensionVersion = \"1.5.14\"\n    }\n\n    compileOptions {\n        sourceCompatibility = JavaVersion.VERSION_17\n        targetCompatibility = JavaVersion.VERSION_17\n    }\n\n    kotlinOptions {\n        jvmTarget = \"17\"\n    }\n}\n\ndependencies {\n    // ===== Jetpack Compose =====\n    implementation(platform(\"androidx.compose:compose-bom:2024.06.00\"))\n    implementation(\"androidx.compose.ui:ui\")\n    implementation(\"androidx.compose.material3:material3\")\n    implementation(\"androidx.compose.ui:ui-tooling-preview\")\n    debugImplementation(\"androidx.compose.ui:ui-tooling\")\n\n    // Activity Compose\n    implementation(\"androidx.activity:activity-compose:1.9.2\")\n\n    // ViewModel Compose (kalau kamu pakai state)\n    implementation(\"androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4\")\n\n    // ===== Android dasar =====\n    implementation(\"androidx.core:core-ktx:1.13.1\")\n    implementation(\"androidx.appcompat:appcompat:1.7.0\")\n\n    // ===== Firebase (pakai BoM biar aman) =====\n    implementation(platform(\"com.google.firebase:firebase-bom:33.4.0\"))\n    implementation(\"com.google.firebase:firebase-firestore-ktx\")\n    implementation(\"com.google.firebase:firebase-auth-ktx\")\n    implementation(\"com.google.firebase:firebase-analytics-ktx\")\n\n    // ===== Testing =====\n    testImplementation(\"junit:junit:4.13.2\")\n    androidTestImplementation(\"androidx.test.ext:junit:1.2.1\")\n    androidTestImplementation(\"androidx.test.espresso:espresso-core:3.6.1\")\n    androidTestImplementation(platform(\"androidx.compose:compose-bom:2024.06.00\"))\n    androidTestImplementation(\"androidx.compose.ui:ui-test-junit4\")\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/build.gradle.kts b/app/build.gradle.kts
+--- a/app/build.gradle.kts	(revision 6055646a144cccd8107a1dd10d9d8c55bbb68fd7)
++++ b/app/build.gradle.kts	(date 1760640325339)
+@@ -22,7 +22,8 @@
+     }
+ 
+     composeOptions {
+-        kotlinCompilerExtensionVersion = "1.5.14"
++        // ✅ Versi Compose Compiler yang compatible dengan Compose BOM 2024.09.01
++        kotlinCompilerExtensionVersion = "1.6.0"
+     }
+ 
+     compileOptions {
+@@ -36,33 +37,47 @@
+ }
+ 
+ dependencies {
+-    // ===== Jetpack Compose =====
+-    implementation(platform("androidx.compose:compose-bom:2024.06.00"))
++    // ===============================
++    // 🚀 Jetpack Compose Core
++    // ===============================
++    implementation(platform("androidx.compose:compose-bom:2024.09.01"))
+     implementation("androidx.compose.ui:ui")
+     implementation("androidx.compose.material3:material3")
+     implementation("androidx.compose.ui:ui-tooling-preview")
+     debugImplementation("androidx.compose.ui:ui-tooling")
+ 
++    // Material Icons (optional)
++    implementation("androidx.compose.material:material-icons-extended")
++
++    // Navigation for Compose
++    implementation("androidx.navigation:navigation-compose:2.8.3")
++
+     // Activity Compose
+     implementation("androidx.activity:activity-compose:1.9.2")
+ 
+-    // ViewModel Compose (kalau kamu pakai state)
++    // ViewModel Compose
+     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.4")
+ 
+-    // ===== Android dasar =====
+-    implementation("androidx.core:core-ktx:1.13.1")
+-    implementation("androidx.appcompat:appcompat:1.7.0")
+-
+-    // ===== Firebase (pakai BoM biar aman) =====
++    // ===============================
++    // 🔥 Firebase (pakai BoM agar versi aman)
++    // ===============================
+     implementation(platform("com.google.firebase:firebase-bom:33.4.0"))
+     implementation("com.google.firebase:firebase-firestore-ktx")
+     implementation("com.google.firebase:firebase-auth-ktx")
+     implementation("com.google.firebase:firebase-analytics-ktx")
+ 
+-    // ===== Testing =====
++    // ===============================
++    // 📱 Android Dasar
++    // ===============================
++    implementation("androidx.core:core-ktx:1.13.1")
++    implementation("androidx.appcompat:appcompat:1.7.0")
++
++    // ===============================
++    // 🧪 Testing
++    // ===============================
+     testImplementation("junit:junit:4.13.2")
+     androidTestImplementation("androidx.test.ext:junit:1.2.1")
+     androidTestImplementation("androidx.test.espresso:espresso-core:3.6.1")
+-    androidTestImplementation(platform("androidx.compose:compose-bom:2024.06.00"))
++    androidTestImplementation(platform("androidx.compose:compose-bom:2024.09.01"))
+     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/ProjectAkhir/Keuanganku/view/AddTransactionScreen.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.ProjectAkhir.Keuanganku.view\n\nimport androidx.compose.foundation.layout.*\nimport androidx.compose.material3.*\nimport androidx.compose.runtime.*\nimport androidx.compose.ui.Alignment\nimport androidx.compose.ui.Modifier\nimport androidx.compose.ui.unit.dp\nimport com.ProjectAkhir.Keuanganku.model.Transaction\nimport com.ProjectAkhir.Keuanganku.util.FirebaseHelper\nimport java.text.SimpleDateFormat\nimport java.util.*\n\n@OptIn(ExperimentalMaterial3Api::class)\n@Composable\nfun AddTransactionScreen(\n    onTransactionAdded: () -> Unit\n) {\n    var title by remember { mutableStateOf(\"\") }\n    var amount by remember { mutableStateOf(\"\") }\n    var category by remember { mutableStateOf(\"\") }\n\n    Scaffold(\n        topBar = {\n            TopAppBar(title = { Text(\"➕ Tambah Transaksi\") })\n        }\n    ) { padding ->\n        Column(\n            modifier = Modifier\n                .fillMaxSize()\n                .padding(padding)\n                .padding(16.dp),\n            verticalArrangement = Arrangement.Center,\n            horizontalAlignment = Alignment.CenterHorizontally\n        ) {\n            OutlinedTextField(\n                value = title,\n                onValueChange = { title = it },\n                label = { Text(\"Judul Transaksi\") },\n                modifier = Modifier.fillMaxWidth()\n            )\n\n            Spacer(modifier = Modifier.height(8.dp))\n\n            OutlinedTextField(\n                value = amount,\n                onValueChange = { amount = it },\n                label = { Text(\"Jumlah (Rp)\") },\n                modifier = Modifier.fillMaxWidth()\n            )\n\n            Spacer(modifier = Modifier.height(8.dp))\n\n            OutlinedTextField(\n                value = category,\n                onValueChange = { category = it },\n                label = { Text(\"Kategori\") },\n                modifier = Modifier.fillMaxWidth()\n            )\n\n            Spacer(modifier = Modifier.height(16.dp))\n\n            Button(\n                onClick = {\n                    val transaction = Transaction(\n                        title = title,\n                        amount = amount.toDoubleOrNull() ?: 0.0,\n                        category = category,\n                        date = SimpleDateFormat(\"dd/MM/yyyy\", Locale.getDefault()).format(Date())\n                    )\n                    FirebaseHelper.addTransaction(transaction) {\n                        onTransactionAdded()\n                    }\n                },\n                modifier = Modifier.fillMaxWidth()\n            ) {\n                Text(\"Simpan Transaksi\")\n            }\n        }\n    }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/ProjectAkhir/Keuanganku/view/AddTransactionScreen.kt b/app/src/main/java/com/ProjectAkhir/Keuanganku/view/AddTransactionScreen.kt
+--- a/app/src/main/java/com/ProjectAkhir/Keuanganku/view/AddTransactionScreen.kt	(revision 6055646a144cccd8107a1dd10d9d8c55bbb68fd7)
++++ b/app/src/main/java/com/ProjectAkhir/Keuanganku/view/AddTransactionScreen.kt	(date 1760639399644)
+@@ -3,54 +3,49 @@
+ import androidx.compose.foundation.layout.*
+ import androidx.compose.material3.*
+ import androidx.compose.runtime.*
+-import androidx.compose.ui.Alignment
+ import androidx.compose.ui.Modifier
++import androidx.compose.ui.text.input.KeyboardOptions
++import androidx.compose.ui.text.input.KeyboardType
+ import androidx.compose.ui.unit.dp
+ import com.ProjectAkhir.Keuanganku.model.Transaction
+ import com.ProjectAkhir.Keuanganku.util.FirebaseHelper
+-import java.text.SimpleDateFormat
+-import java.util.*
+ 
+ @OptIn(ExperimentalMaterial3Api::class)
+ @Composable
+-fun AddTransactionScreen(
+-    onTransactionAdded: () -> Unit
+-) {
++fun AddTransactionScreen(onTransactionAdded: () -> Unit) {
+     var title by remember { mutableStateOf("") }
+     var amount by remember { mutableStateOf("") }
+     var category by remember { mutableStateOf("") }
++    var date by remember { mutableStateOf("") }
+ 
+     Scaffold(
+         topBar = {
+-            TopAppBar(title = { Text("➕ Tambah Transaksi") })
++            TopAppBar(
++                title = { Text("Tambah Transaksi") }
++            )
+         }
+-    ) { padding ->
++    ) { paddingValues ->
+         Column(
+             modifier = Modifier
+-                .fillMaxSize()
+-                .padding(padding)
++                .padding(paddingValues)
+                 .padding(16.dp),
+-            verticalArrangement = Arrangement.Center,
+-            horizontalAlignment = Alignment.CenterHorizontally
++            verticalArrangement = Arrangement.spacedBy(12.dp)
+         ) {
+             OutlinedTextField(
+                 value = title,
+                 onValueChange = { title = it },
+-                label = { Text("Judul Transaksi") },
++                label = { Text("Judul") },
+                 modifier = Modifier.fillMaxWidth()
+             )
+ 
+-            Spacer(modifier = Modifier.height(8.dp))
+-
+             OutlinedTextField(
+                 value = amount,
+                 onValueChange = { amount = it },
+-                label = { Text("Jumlah (Rp)") },
++                label = { Text("Jumlah") },
++                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                 modifier = Modifier.fillMaxWidth()
+             )
+ 
+-            Spacer(modifier = Modifier.height(8.dp))
+-
+             OutlinedTextField(
+                 value = category,
+                 onValueChange = { category = it },
+@@ -58,7 +53,12 @@
+                 modifier = Modifier.fillMaxWidth()
+             )
+ 
+-            Spacer(modifier = Modifier.height(16.dp))
++            OutlinedTextField(
++                value = date,
++                onValueChange = { date = it },
++                label = { Text("Tanggal (YYYY-MM-DD)") },
++                modifier = Modifier.fillMaxWidth()
++            )
+ 
+             Button(
+                 onClick = {
+@@ -66,10 +66,13 @@
+                         title = title,
+                         amount = amount.toDoubleOrNull() ?: 0.0,
+                         category = category,
+-                        date = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault()).format(Date())
++                        date = date
+                     )
+-                    FirebaseHelper.addTransaction(transaction) {
+-                        onTransactionAdded()
++
++                    FirebaseHelper.addTransaction(transaction) { success ->
++                        if (success) {
++                            onTransactionAdded()
++                        }
+                     }
+                 },
+                 modifier = Modifier.fillMaxWidth()
+Index: app/src/main/java/com/ProjectAkhir/Keuanganku/util/FirebaseHelper.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.ProjectAkhir.Keuanganku.util\n\nimport android.util.Log\nimport com.ProjectAkhir.Keuanganku.model.Transaction\nimport com.google.firebase.firestore.FirebaseFirestore\n\nobject FirebaseHelper {\n\n    private val db = FirebaseFirestore.getInstance()\n    private val collection = db.collection(\"transactions\")\n\n    fun getTransactions(onResult: (List<Transaction>) -> Unit) {\n        collection.get()\n            .addOnSuccessListener { result ->\n                val list = result.toObjects(Transaction::class.java)\n                onResult(list)\n            }\n            .addOnFailureListener { e ->\n                Log.e(\"FirebaseHelper\", \"❌ Error fetching data\", e)\n                onResult(emptyList())\n            }\n    }\n\n    fun addTransaction(transaction: Transaction, onComplete: (Boolean) -> Unit) {\n        collection.add(transaction)\n            .addOnSuccessListener {\n                Log.d(\"FirebaseHelper\", \"✅ Transaction added: ${transaction.title}\")\n                onComplete(true)\n            }\n            .addOnFailureListener { e ->\n                Log.e(\"FirebaseHelper\", \"❌ Error adding transaction\", e)\n                onComplete(false)\n            }\n    }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/ProjectAkhir/Keuanganku/util/FirebaseHelper.kt b/app/src/main/java/com/ProjectAkhir/Keuanganku/util/FirebaseHelper.kt
+--- a/app/src/main/java/com/ProjectAkhir/Keuanganku/util/FirebaseHelper.kt	(revision 6055646a144cccd8107a1dd10d9d8c55bbb68fd7)
++++ b/app/src/main/java/com/ProjectAkhir/Keuanganku/util/FirebaseHelper.kt	(date 1760639357250)
+@@ -1,35 +1,41 @@
+ package com.ProjectAkhir.Keuanganku.util
+ 
+ import android.util.Log
+-import com.ProjectAkhir.Keuanganku.model.Transaction
+ import com.google.firebase.firestore.FirebaseFirestore
++import com.ProjectAkhir.Keuanganku.model.Transaction
+ 
+-object FirebaseHelper {
++object FirebaseHelper { // pakai object biar singleton (cukup 1 instance)
+ 
+-    private val db = FirebaseFirestore.getInstance()
+-    private val collection = db.collection("transactions")
++    private val firestore = FirebaseFirestore.getInstance()
++    private const val COLLECTION_NAME = "transactions"
+ 
+-    fun getTransactions(onResult: (List<Transaction>) -> Unit) {
+-        collection.get()
+-            .addOnSuccessListener { result ->
+-                val list = result.toObjects(Transaction::class.java)
+-                onResult(list)
+-            }
+-            .addOnFailureListener { e ->
+-                Log.e("FirebaseHelper", "❌ Error fetching data", e)
+-                onResult(emptyList())
+-            }
+-    }
+-
++    // 🔥 Tambah transaksi baru
+     fun addTransaction(transaction: Transaction, onComplete: (Boolean) -> Unit) {
+-        collection.add(transaction)
++        firestore.collection(COLLECTION_NAME)
++            .add(transaction)
+             .addOnSuccessListener {
+-                Log.d("FirebaseHelper", "✅ Transaction added: ${transaction.title}")
++                Log.d("FirebaseHelper", "✅ Berhasil menambahkan transaksi: ${transaction.title}")
+                 onComplete(true)
+             }
+             .addOnFailureListener { e ->
+-                Log.e("FirebaseHelper", "❌ Error adding transaction", e)
++                Log.e("FirebaseHelper", "❌ Gagal menambahkan transaksi", e)
+                 onComplete(false)
+             }
+     }
++
++    // 👀 Ambil data transaksi realtime
++    fun getTransactionsRealtime(onResult: (List<Transaction>) -> Unit) {
++        firestore.collection(COLLECTION_NAME)
++            .addSnapshotListener { snapshot, error ->
++                if (error != null || snapshot == null) {
++                    Log.e("FirebaseHelper", "❌ Error ambil data transaksi", error)
++                    onResult(emptyList())
++                    return@addSnapshotListener
++                }
++
++                val list = snapshot.toObjects(Transaction::class.java)
++                Log.d("FirebaseHelper", "📦 Dapat ${list.size} transaksi dari Firestore")
++                onResult(list)
++            }
++    }
+ }
+\ No newline at end of file
+Index: app/src/main/java/com/ProjectAkhir/Keuanganku/view/MainActivity.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>package com.ProjectAkhir.Keuanganku.view\n\nimport android.os.Bundle\nimport androidx.activity.ComponentActivity\nimport androidx.activity.compose.setContent\nimport com.ProjectAkhir.Keuanganku.ui.theme.KeuangankuTheme\n\nclass MainActivity : ComponentActivity() {\n    override fun onCreate(savedInstanceState: Bundle?) {\n        super.onCreate(savedInstanceState)\n        setContent {\n            KeuangankuTheme {\n                TransactionListScreen()\n            }\n        }\n    }\n}
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/ProjectAkhir/Keuanganku/view/MainActivity.kt b/app/src/main/java/com/ProjectAkhir/Keuanganku/view/MainActivity.kt
+--- a/app/src/main/java/com/ProjectAkhir/Keuanganku/view/MainActivity.kt	(revision 6055646a144cccd8107a1dd10d9d8c55bbb68fd7)
++++ b/app/src/main/java/com/ProjectAkhir/Keuanganku/view/MainActivity.kt	(date 1760637858370)
+@@ -3,6 +3,8 @@
+ import android.os.Bundle
+ import androidx.activity.ComponentActivity
+ import androidx.activity.compose.setContent
++import androidx.navigation.compose.rememberNavController
++import com.ProjectAkhir.Keuanganku.navigation.NavGraph
+ import com.ProjectAkhir.Keuanganku.ui.theme.KeuangankuTheme
+ 
+ class MainActivity : ComponentActivity() {
+@@ -10,7 +12,8 @@
+         super.onCreate(savedInstanceState)
+         setContent {
+             KeuangankuTheme {
+-                TransactionListScreen()
++                val navController = rememberNavController()
++                NavGraph(navController)
+             }
+         }
+     }
+Index: app/src/main/java/com/ProjectAkhir/Keuanganku/navigation/NavGraph.kt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app/src/main/java/com/ProjectAkhir/Keuanganku/navigation/NavGraph.kt b/app/src/main/java/com/ProjectAkhir/Keuanganku/navigation/NavGraph.kt
+new file mode 100644
+--- /dev/null	(date 1760637858366)
++++ b/app/src/main/java/com/ProjectAkhir/Keuanganku/navigation/NavGraph.kt	(date 1760637858366)
+@@ -0,0 +1,28 @@
++package com.ProjectAkhir.Keuanganku.navigation
++
++
++import androidx.compose.runtime.Composable
++import androidx.navigation.NavHostController
++import androidx.navigation.compose.NavHost
++import androidx.navigation.compose.composable
++import com.ProjectAkhir.Keuanganku.view.AddTransactionScreen
++import com.ProjectAkhir.Keuanganku.view.TransactionListScreen
++
++@Composable
++fun NavGraph(navController: NavHostController) {
++    NavHost(
++        navController = navController,
++        startDestination = "transaction_list"
++    ) {
++        composable("transaction_list") {
++            TransactionListScreen(
++                onAddTransactionClick = { navController.navigate("add_transaction") }
++            )
++        }
++        composable("add_transaction") {
++            AddTransactionScreen(
++                onTransactionAdded = { navController.popBackStack() }
++            )
++        }
++    }
++}
+\ No newline at end of file
