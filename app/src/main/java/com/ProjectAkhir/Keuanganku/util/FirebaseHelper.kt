@@ -1,35 +1,41 @@
 package com.ProjectAkhir.Keuanganku.util
 
 import android.util.Log
-import com.ProjectAkhir.Keuanganku.model.Transaction
 import com.google.firebase.firestore.FirebaseFirestore
+import com.ProjectAkhir.Keuanganku.model.Transaction
 
-object FirebaseHelper {
+object FirebaseHelper { // pakai object biar singleton (cukup 1 instance)
 
-    private val db = FirebaseFirestore.getInstance()
-    private val collection = db.collection("transactions")
+    private val firestore = FirebaseFirestore.getInstance()
+    private const val COLLECTION_NAME = "transactions"
 
-    fun getTransactions(onResult: (List<Transaction>) -> Unit) {
-        collection.get()
-            .addOnSuccessListener { result ->
-                val list = result.toObjects(Transaction::class.java)
-                onResult(list)
-            }
-            .addOnFailureListener { e ->
-                Log.e("FirebaseHelper", "❌ Error fetching data", e)
-                onResult(emptyList())
-            }
-    }
-
+    // 🔥 Tambah transaksi baru
     fun addTransaction(transaction: Transaction, onComplete: (Boolean) -> Unit) {
-        collection.add(transaction)
+        firestore.collection(COLLECTION_NAME)
+            .add(transaction)
             .addOnSuccessListener {
-                Log.d("FirebaseHelper", "✅ Transaction added: ${transaction.title}")
+                Log.d("FirebaseHelper", "✅ Berhasil menambahkan transaksi: ${transaction.title}")
                 onComplete(true)
             }
             .addOnFailureListener { e ->
-                Log.e("FirebaseHelper", "❌ Error adding transaction", e)
+                Log.e("FirebaseHelper", "❌ Gagal menambahkan transaksi", e)
                 onComplete(false)
+            }
+    }
+
+    // 👀 Ambil data transaksi realtime
+    fun getTransactionsRealtime(onResult: (List<Transaction>) -> Unit) {
+        firestore.collection(COLLECTION_NAME)
+            .addSnapshotListener { snapshot, error ->
+                if (error != null || snapshot == null) {
+                    Log.e("FirebaseHelper", "❌ Error ambil data transaksi", error)
+                    onResult(emptyList())
+                    return@addSnapshotListener
+                }
+
+                val list = snapshot.toObjects(Transaction::class.java)
+                Log.d("FirebaseHelper", "📦 Dapat ${list.size} transaksi dari Firestore")
+                onResult(list)
             }
     }
 }
