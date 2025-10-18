@@ -1,106 +1,128 @@
 package com.ProjectAkhir.Keuanganku.view
 
-
 import android.app.DatePickerDialog
-import androidx.compose.foundation.clickable
+import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ProjectAkhir.Keuanganku.model.Transaction
 import com.ProjectAkhir.Keuanganku.util.FirebaseHelper
+import java.text.NumberFormat
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AddTransactionScreen(onTransactionAdded: () -> Unit) {
+fun AddTransactionScreen(
+    onTransactionAdded: () -> Unit
+) {
     val context = LocalContext.current
     val firebaseHelper = remember { FirebaseHelper() }
 
     var title by remember { mutableStateOf("") }
     var amount by remember { mutableStateOf("") }
-    var category by remember { mutableStateOf("") }
     var date by remember { mutableStateOf("") }
 
     val calendar = Calendar.getInstance()
-    val datePickerDialog = DatePickerDialog(
-        context,
-        { _, year, month, day ->
-            val selectedDate = Calendar.getInstance()
-            selectedDate.set(year, month, day)
-            date = SimpleDateFormat("dd MMMM yyyy", Locale("id", "ID"))
-                .format(selectedDate.time)
-        },
-        calendar.get(Calendar.YEAR),
-        calendar.get(Calendar.MONTH),
-        calendar.get(Calendar.DAY_OF_MONTH)
-    )
+    val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+
+    // 🔹 Format angka otomatis jadi rupiah saat input
+    fun formatCurrency(input: String): String {
+        return try {
+            val cleanString = input.replace("[Rp,.\\s]".toRegex(), "")
+            if (cleanString.isEmpty()) return ""
+            val parsed = cleanString.toDouble()
+            "Rp" + NumberFormat.getNumberInstance(Locale("id", "ID")).format(parsed)
+        } catch (e: Exception) {
+            input
+        }
+    }
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Tambah Transaksi") })
+            TopAppBar(
+                title = { Text("Tambah Transaksi") }
+            )
         }
     ) { padding ->
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            OutlinedTextField(
+            // 🔸 Nama transaksi
+            TextField(
                 value = title,
                 onValueChange = { title = it },
-                label = { Text("Judul") },
+                label = { Text("Nama Transaksi") },
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 🔸 Input uang dengan format
+            TextField(
                 value = amount,
-                onValueChange = { amount = it },
-                label = { Text("Jumlah (Rp)") },
-                modifier = Modifier.fillMaxWidth(),
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-
-            OutlinedTextField(
-                value = category,
-                onValueChange = { category = it },
-                label = { Text("Kategori") },
+                onValueChange = { newValue ->
+                    amount = formatCurrency(newValue)
+                },
+                label = { Text("Jumlah Uang") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth()
             )
 
-            OutlinedTextField(
-                value = date,
-                onValueChange = { },
-                label = { Text("Tanggal") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { datePickerDialog.show() },
-                enabled = false,
-                readOnly = true
-            )
+            Spacer(modifier = Modifier.height(12.dp))
 
+            // 🔸 Tanggal pakai DatePicker
             Button(
                 onClick = {
-                    if (title.isNotBlank() && amount.isNotBlank() && category.isNotBlank() && date.isNotBlank()) {
-                        val transaction = Transaction(
-                            title = title,
-                            amount = amount.toDouble(),
-                            category = category,
-                            date = date
-                        )
-                        firebaseHelper.addTransaction(transaction) { success ->
-                            if (success) onTransactionAdded()
+                    val datePicker = DatePickerDialog(
+                        context,
+                        { _, year, month, day ->
+                            calendar.set(year, month, day)
+                            date = formatter.format(calendar.time)
+                        },
+                        calendar.get(Calendar.YEAR),
+                        calendar.get(Calendar.MONTH),
+                        calendar.get(Calendar.DAY_OF_MONTH)
+                    )
+                    datePicker.show()
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(if (date.isEmpty()) "Pilih Tanggal" else "Tanggal: $date")
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 🔸 Tombol simpan
+            Button(
+                onClick = {
+                    val amountValue = amount.replace("[Rp,.\\s]".toRegex(), "").toDoubleOrNull() ?: 0.0
+                    val transaction = Transaction(
+                        title = title,
+                        amount = amountValue,
+                        date = if (date.isNotEmpty()) date else "Belum dipilih"
+                    )
+
+                    firebaseHelper.addTransaction(transaction) { success ->
+                        if (success) {
+                            Toast.makeText(context, "Transaksi berhasil disimpan", Toast.LENGTH_SHORT).show()
+                            onTransactionAdded()
+                        } else {
+                            Toast.makeText(context, "Gagal menyimpan transaksi", Toast.LENGTH_SHORT).show()
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                enabled = title.isNotBlank() && amount.isNotBlank()
             ) {
                 Text("Simpan Transaksi")
             }
