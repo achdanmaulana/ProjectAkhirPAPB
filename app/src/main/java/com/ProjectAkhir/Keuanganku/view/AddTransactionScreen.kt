@@ -3,6 +3,8 @@ package com.ProjectAkhir.Keuanganku.view
 import android.app.DatePickerDialog
 import android.widget.Toast
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -13,7 +15,8 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.ProjectAkhir.Keuanganku.model.Transaction
 import com.ProjectAkhir.Keuanganku.util.FirebaseHelper
-import java.text.NumberFormat
+import java.text.DecimalFormat
+import java.text.DecimalFormatSymbols
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -31,17 +34,17 @@ fun AddTransactionScreen(
 
     val calendar = Calendar.getInstance()
     val formatter = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
+    val scrollState = rememberScrollState()
 
-    // 🔹 Format angka otomatis jadi rupiah saat input
+    // 🔹 Fungsi format Rupiah (tanpa simbol "Rp" agar saat ketik tetap lancar)
     fun formatCurrency(input: String): String {
-        return try {
-            val cleanString = input.replace("[Rp,.\\s]".toRegex(), "")
-            if (cleanString.isEmpty()) return ""
-            val parsed = cleanString.toDouble()
-            "Rp" + NumberFormat.getNumberInstance(Locale("id", "ID")).format(parsed)
-        } catch (e: Exception) {
-            input
-        }
+        val clean = input.replace("[^\\d]".toRegex(), "")
+        if (clean.isEmpty()) return ""
+
+        val parsed = clean.toDouble()
+        val symbols = DecimalFormatSymbols(Locale("id", "ID"))
+        val decimalFormat = DecimalFormat("#,###", symbols)
+        return decimalFormat.format(parsed)
     }
 
     Scaffold(
@@ -54,11 +57,13 @@ fun AddTransactionScreen(
         Column(
             modifier = Modifier
                 .padding(padding)
-                .padding(16.dp),
+                .padding(16.dp)
+                .fillMaxSize()
+                .verticalScroll(scrollState),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // 🔸 Nama transaksi
-            TextField(
+            OutlinedTextField(
                 value = title,
                 onValueChange = { title = it },
                 label = { Text("Nama Transaksi") },
@@ -67,20 +72,26 @@ fun AddTransactionScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 🔸 Input uang dengan format
-            TextField(
+            // 🔸 Input jumlah uang dengan format otomatis
+            OutlinedTextField(
                 value = amount,
                 onValueChange = { newValue ->
-                    amount = formatCurrency(newValue)
+                    val cleanString = newValue.replace("[^\\d]".toRegex(), "")
+                    if (cleanString.isNotEmpty()) {
+                        amount = formatCurrency(cleanString)
+                    } else {
+                        amount = ""
+                    }
                 },
-                label = { Text("Jumlah Uang") },
+                label = { Text("Jumlah Uang (Rp)") },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 🔸 Tanggal pakai DatePicker
+            // 🔸 Pilih tanggal transaksi
             Button(
                 onClick = {
                     val datePicker = DatePickerDialog(
@@ -102,19 +113,22 @@ fun AddTransactionScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // 🔸 Tombol simpan
+            // 🔸 Tombol Simpan
             Button(
                 onClick = {
-                    val amountValue = amount.replace("[Rp,.\\s]".toRegex(), "").toDoubleOrNull() ?: 0.0
+                    val numericValue = amount.replace("[^\\d]".toRegex(), "").toDoubleOrNull() ?: 0.0
                     val transaction = Transaction(
                         title = title,
-                        amount = amountValue,
+                        amount = numericValue,
                         date = if (date.isNotEmpty()) date else "Belum dipilih"
                     )
 
                     firebaseHelper.addTransaction(transaction) { success ->
                         if (success) {
                             Toast.makeText(context, "Transaksi berhasil disimpan", Toast.LENGTH_SHORT).show()
+                            title = ""
+                            amount = ""
+                            date = ""
                             onTransactionAdded()
                         } else {
                             Toast.makeText(context, "Gagal menyimpan transaksi", Toast.LENGTH_SHORT).show()
@@ -122,7 +136,7 @@ fun AddTransactionScreen(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = title.isNotBlank() && amount.isNotBlank()
+                enabled = title.isNotBlank() && amount.isNotBlank() && date.isNotBlank()
             ) {
                 Text("Simpan Transaksi")
             }

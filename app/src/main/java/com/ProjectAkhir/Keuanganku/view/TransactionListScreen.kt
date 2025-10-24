@@ -12,49 +12,58 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.ProjectAkhir.Keuanganku.model.Transaction
 import com.ProjectAkhir.Keuanganku.util.FirebaseHelper
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun TransactionListScreen(onAddClick: () -> Unit) {
+fun TransactionListScreen(
+    onAddTransactionClick: () -> Unit
+) {
     val firebaseHelper = remember { FirebaseHelper() }
     var transactions by remember { mutableStateOf<List<Transaction>>(emptyList()) }
 
     LaunchedEffect(Unit) {
-        firebaseHelper.getTransactionsRealtime {
-            transactions = it
+        firebaseHelper.getTransactionsRealtime { list ->
+            transactions = list
         }
     }
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = onAddClick) {
-                Icon(Icons.Default.Add, contentDescription = "Tambah")
-            }
-        },
         topBar = {
-            TopAppBar(
-                title = { Text("Daftar Transaksi") }
-            )
+            TopAppBar(title = { Text("Daftar Transaksi") })
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = onAddTransactionClick) {
+                Icon(Icons.Default.Add, contentDescription = "Tambah Transaksi")
+            }
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp)
-        ) {
-            items(transactions) { transaction ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    elevation = CardDefaults.cardElevation(4.dp)
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Text(transaction.title, style = MaterialTheme.typography.titleMedium)
-                        Text("Rp ${transaction.amount}")
-                        Text("Kategori: ${transaction.category}")
-                        Text("Tanggal: ${transaction.date}")
+        if (transactions.isEmpty()) {
+            Box(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Belum ada transaksi.")
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(transactions) { transaction ->
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(16.dp)) {
+                            Text(text = transaction.title, style = MaterialTheme.typography.titleMedium)
+                            Text(text = "Rp ${transaction.amount}", style = MaterialTheme.typography.bodyLarge)
+                            Text(text = transaction.category, style = MaterialTheme.typography.bodySmall)
+                            Text(text = transaction.date, style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                 }
             }
